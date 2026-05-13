@@ -312,7 +312,7 @@ seed_systemvmtemplate() {
 
 deploy() {
   if [[ "$1" == "-h" ]]; then
-    echo "Usage: mbx deploy <name of env> <mgmt server template> <hypervisor template> <repo url>"
+    echo "Usage: mbx deploy <name of env> <mgmt server template> <hypervisor template> <repo url> [advanced|basic]"
     exit 0
   fi
 
@@ -336,6 +336,17 @@ deploy() {
   check_mbxt hypervisor $hyt
   hypervisor=$(echo $hyt |  awk '{print substr($0,6,3)}')
   repo=${4:-"http://packages.shapeblue.com/cloudstack/upstream/el8/4.22"}
+  zone_type=${5:-"advanced"}
+
+  if [[ "$zone_type" != "advanced" && "$zone_type" != "basic" ]]; then
+    echo "Invalid zone type: $zone_type. Supported values: advanced, basic"
+     exit 1
+  fi
+
+  if [[ "$zone_type" == "basic" && "$hypervisor" != "kvm" ]]; then
+    echo "Basic zone deployment is currently supported only for KVM in mbx"
+    exit 1
+  fi
 
   uuid=$(cat /proc/sys/kernel/random/uuid | sed 's/-.*//g')
   env="qa$id-$name-$uuid-$hypervisor"
@@ -344,6 +355,7 @@ deploy() {
   echo "Management server template: $mst"
   echo "Hypervisor template: $hyt"
   echo "Package repo: $repo"
+  echo "Zone type: $zone_type"
 
   mkdir -p $ROOT/boxes/$env
   echo $env >> $ROOT/boxes/boxes.list
@@ -533,11 +545,16 @@ deploy() {
     echo "Before launching zone, open the VC web UI and reset any warning on the ESXi hosts by clicking 'Reset to Green'"
   fi
 
-  envsubst < $ROOT/marvin/$hypervisor.cfg > $ROOT/boxes/$env/marvin.cfg
-    if [[ "$monkeynet_gw" != "172.20.0.1" ]]; then
-      monkeynet_gw_prefix=$(echo "$monkeynet_gw" | awk -F. '{print $1"."$2"."$3}')
-      sed -i "s/172\.20\.0\./$monkeynet_gw_prefix\./g" $ROOT/boxes/$env/marvin.cfg
-    fi
+  marvin_cfg="$ROOT/marvin/$hypervisor.cfg"
+  if [[ "$zone_type" == "basic" ]]; then
+    marvin_cfg="$ROOT/marvin/$hypervisor-basic.cfg"
+  fi
+
+  envsubst < $marvin_cfg > $ROOT/boxes/$env/marvin.cfg
+  if [[ "$monkeynet_gw" != "172.20.0.1" ]]; then
+    monkeynet_gw_prefix=$(echo "$monkeynet_gw" | awk -F. '{print $1"."$2"."$3}')
+    sed -i "s/172\.20\.0\./$monkeynet_gw_prefix\./g" $ROOT/boxes/$env/marvin.cfg
+  fi
   echo "VMs deployed and marvin config generated, to launch zone run:"
   echo "  mbx launch $env"
 }
