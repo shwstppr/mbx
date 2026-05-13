@@ -33,9 +33,9 @@ mgmtscp() {
   sshpass -pP@ssword123 ssh -o StrictHostKeyChecking=no root@$MS "rm -f /usr/share/cloudstack-management/lib/cloud-client-ui*jar"
   sshpass -pP@ssword123 ssh -o StrictHostKeyChecking=no root@$MS "mv /var/log/cloudstack/management/management-server.log /var/log/cloudstack/management/management-server.log-`date +%Y%m%dT%H%M%S`"
   echo "[acs server] Copying jar to server: $MS"
-  sshpass -pP@ssword123 scp -Cv -o StrictHostKeyChecking=no $ROOT/client/target/cloud-client-ui-*.jar root@$MS:/usr/share/cloudstack-management/lib/
+  sshpass -pP@ssword123 scp -O -Cv -o StrictHostKeyChecking=no $ROOT/client/target/cloud-client-ui-*.jar root@$MS:/usr/share/cloudstack-management/lib/
   echo "[acs server] Copying systemvm.iso"
-  sshpass -pP@ssword123 scp -Cv -o StrictHostKeyChecking=no $ROOT/systemvm/dist/systemvm.iso  root@$MS:/usr/share/cloudstack-common/vms/
+  sshpass -pP@ssword123 scp -Cv -o StrictHostKeyChecking=no $ROOT/systemvm/dist/*  root@$MS:/usr/share/cloudstack-common/vms/
   echo "[acs server] Starting MS: $MS"
   sshpass -pP@ssword123 ssh -o StrictHostKeyChecking=no root@$MS "systemctl start cloudstack-management"
 }
@@ -45,7 +45,7 @@ agentscp() {
   echo "[acs agent] Syncing changes to agent: $1"
 
   echo "[acs agent] Copied systemvm.iso"
-  scp $ROOT/systemvm/dist/systemvm.iso  root@$1:/usr/share/cloudstack-common/vms/
+  scp $ROOT/systemvm/dist/*  root@$1:/usr/share/cloudstack-common/vms/
 
   echo "[acs agent] Syncing python lib changes to agent: $1"
   scp -r $ROOT/python/lib/* root@$1:/usr/lib64/python2.6/site-packages/ 2>/dev/null || true
