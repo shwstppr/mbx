@@ -583,10 +583,13 @@ deploy() {
   fi
 
   envsubst < $ROOT/marvin/$hypervisor.cfg > $ROOT/boxes/$env/marvin.cfg
-    if [[ "$monkeynet_gw" != "172.20.0.1" ]]; then
-      monkeynet_gw_prefix=$(echo "$monkeynet_gw" | awk -F. '{print $1"."$2"."$3}')
-      sed -i "s/172\.20\.0\./$monkeynet_gw_prefix\./g" $ROOT/boxes/$env/marvin.cfg
-    fi
+  if [[ "$hostcount" -eq 1 && ( "$hypervisor" == "kvm" ) ]]; then
+    python3 $ROOT/utils/trim_marvin_config.py "$ROOT/boxes/$env/marvin.cfg"
+  fi
+  if [[ "$monkeynet_gw" != "172.20.0.1" ]]; then
+    monkeynet_gw_prefix=$(echo "$monkeynet_gw" | awk -F. '{print $1"."$2"."$3}')
+    sed -i "s/172\.20\.0\./$monkeynet_gw_prefix\./g" $ROOT/boxes/$env/marvin.cfg
+  fi
   echo "VMs deployed and marvin config generated, to launch zone run:"
   echo "  mbx launch $env"
 }
