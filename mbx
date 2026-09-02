@@ -298,6 +298,17 @@ iscp() {
   sshpass -p 'P@ssword123' scp -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no" -o "LogLevel=ERROR" $@
 }
 
+fix_marvin_setup_py() {
+  local setup_glob="$1"
+  if [[ -z "$setup_glob" ]]; then
+    echo "Error: missing Marvin setup.py glob" >&2
+    return 1
+  fi
+
+  # Single-line command: issh passes args through unquoted $@, which collapses newlines/heredocs.
+  issh root@$msip "for f in $setup_glob; do sed -i -E 's/mysql-connector-python[[:space:]]*>=[[:space:]]*8\.4\.0/mysql-connector-python <= 8.4.0/' \"\$f\"; done"
+}
+
 seed_systemvmtemplate() {
   version=$1
   hypervisor=$2
@@ -616,6 +627,7 @@ launch() {
   # Only ACS version 4.16 and later supported
   issh root@$msip "pip3 uninstall -y Marvin" || true
   issh root@$msip "cd /usr/share/cloudstack-marvin && tar zxf Marvin*.tar.gz && mv Marvin*.tar.gz archive-marvin.tar.gz && sed -i 's/-SNAPSHOT//g' Marvin-*/setup.py"
+  fix_marvin_setup_py "/usr/share/cloudstack-marvin/Marvin-*/setup.py"
   issh root@$msip "pip3 install --ignore-installed /usr/share/cloudstack-marvin/Marvin-*/"
   issh root@$msip "pip3 install --ignore-installed mysql-connector-python==8.0.31" || true
   issh root@$msip "cd /marvin && ln -sf /usr/share/cloudstack-integration-tests tests" || true
