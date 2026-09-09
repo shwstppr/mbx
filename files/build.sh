@@ -136,6 +136,14 @@ if [[ "${PR_ID}" != "" ]]; then
   git config --global user.email "you@example.com"
   git config --global user.name "Your Name"
 
+  # Unshallow before merging the PR ref, otherwise git-pr's merge fails with
+  # "refusing to merge unrelated histories" since the shallow clone has no
+  # common ancestor with the fully-fetched PR history.
+  if [ -f .git/shallow ]; then
+    echo "Repository is shallow, unshallowing before merging PR..."
+    run_git fetch origin --unshallow --progress
+  fi
+
   sed -i 's/^repoName=.*/repoName=cloudstack/g' tools/git/git-pr
   bash tools/git/git-pr $PR_ID --force
 fi
